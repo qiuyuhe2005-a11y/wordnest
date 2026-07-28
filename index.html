@@ -13,9 +13,13 @@
   <style>
     .vkeyboard{display:none}
     @media(max-width:800px){
-      .vkeyboard{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin:10px 0 18px}
+      .vkeyboard{display:flex;flex-direction:column;gap:6px;margin:10px 0 18px}
+      .vkeyboard .keyrow{display:flex;justify-content:center;gap:4px}
       .vkeyboard button{min-width:0;height:38px;border:1px solid #dedbea;border-radius:7px;background:#fff;color:#25233a;font-size:13px;font-weight:700;padding:0}
-      .vkeyboard button.wide{grid-column:span 2;background:#efedff;color:#5749c4}
+      .vkeyboard .keyrow button{flex:1;max-width:42px}
+      .vkeyboard .keyrow.middle{padding:0 4%}
+      .vkeyboard .keyrow.bottom{padding:0 10%}
+      .vkeyboard .keyrow.actions button{max-width:none;flex:1;background:#efedff;color:#5749c4}
       .vkeyboard button.delete{background:#fff0ee;color:#ad554e}
       .side{inset:auto 0 0 0;width:100%;height:70px;padding:7px 8px;background:#fff;border-right:0;border-top:1px solid #e9e7ef;z-index:30}
       .side .brand,.side .profile{display:none}
@@ -26,13 +30,16 @@
       header{padding:0 18px}
       .content{padding:28px 18px}
     }
+    .help-modal{position:fixed;inset:0;background:#25233a66;display:grid;place-items:center;padding:20px;z-index:100}
+    .help-card{width:min(500px,100%);max-height:80vh;overflow:auto;background:#fff;border-radius:18px;padding:26px;box-shadow:0 24px 70px #0003}
+    .help-card h2{margin:0 0 16px}.help-card p{font-size:13px;line-height:1.7;color:#666}.help-card button{width:100%;border:0;border-radius:9px;background:#6657d7;color:#fff;padding:12px;margin-top:8px}
   </style>
 </head>
 <body><div class="app">
   <aside class="side"><div class="brand"><i>W</i>WordNest</div><nav class="nav">
     <button data-view="home" class="active">⌂　学习首页</button><button data-view="dictionary">⌕　查词</button><button data-view="books">▤　我的词书</button><button data-view="dictation">◉　听写练习</button>
   </nav><div class="profile">连续学习 7 天 🔥</div></aside>
-  <div class="main"><header><span id="title">欢迎回来 👋</span><span><button id="install" class="hide" style="border:0;border-radius:8px;background:#6657d7;color:#fff;padding:8px 12px">安装 App</button>　帮助　♢</span></header><div class="content">
+  <div class="main"><header><span id="title">欢迎回来 👋</span><span><button id="install" class="hide" style="border:0;border-radius:8px;background:#6657d7;color:#fff;padding:8px 12px">安装 App</button>　<button onclick="showHelp()" style="border:0;background:transparent;padding:8px">帮助　◇</button></span></header><div class="content">
     <section id="home" class="view"><div class="hero"><div><span class="eyebrow">TODAY · JUL 28</span><h1>把今天的新词，<br>变成明天的表达。</h1><p>今天还有 12 个单词等待复习，大约需要 8 分钟。</p><button class="primary" onclick="go('dictation')">开始今日学习　→</button></div><div class="ring"></div></div>
       <h2>快速开始</h2><div class="quick"><button class="action" onclick="go('dictionary')"><strong>⌕　查一个新单词</strong><small>查询释义并自动收入生词本</small></button><button class="action" onclick="file.click()"><strong>⇧　导入 Excel 词表</strong><small>自动识别单词、音标与释义</small></button></div>
       <div class="panels"><div class="panel"><h2>我的词书</h2><p id="summary"></p><div id="homeBooks"></div></div><div class="panel"><h2>学习节奏</h2><p>最近 7 天 · 42 个新词</p><div class="chart"><i style="height:42%"></i><i style="height:68%"></i><i style="height:35%"></i><i style="height:82%"></i><i style="height:58%"></i><i style="height:92%"></i><i style="height:70%"></i></div></div></div>
@@ -41,6 +48,7 @@
     <section id="books" class="view hide page"><span class="eyebrow">WORD BOOKS</span><h1>把零散的单词，整理成体系。</h1><p class="sub">支持 Excel / CSV，默认读取：单词、音标、释义、例句四列。</p><button class="primary" onclick="file.click()">⇧ 导入词表</button><div class="bookgrid" id="bookGrid"></div></section>
     <section id="dictation" class="view hide page quiz"><div class="progress"><i id="qbar"></i></div><div class="quizcard"><span class="eyebrow">听音频，拼出这个单词</span><button class="play" onclick="speak(current().term)">▶</button><small>点击可重复播放</small><input id="answer" autocomplete="off" autocapitalize="none" spellcheck="false" inputmode="latin" placeholder="在这里输入单词"><div class="vkeyboard" data-target="answer"></div><div id="feedback"></div><button class="primary" style="width:100%" onclick="check()">检查拼写</button></div></section>
   </div></div><input id="file" type="file" accept=".xlsx,.xls,.csv" hidden><div id="toast" class="toast hide"></div>
+  <div id="help" class="help-modal hide" onclick="if(event.target===this)hideHelp()"><div class="help-card"><h2>WordNest 使用帮助</h2><p><b>查词：</b>输入英文单词并点击查询，可查看音标、释义和例句，再加入生词本。</p><p><b>导入：</b>上传 Excel 或 CSV，第一列为单词，后面可依次放音标、释义和例句。</p><p><b>听写：</b>点击播放听发音，使用键盘拼写单词；退格键可逐字删除。</p><p><b>删除：</b>进入“我的词书”，点击单词旁的“删除”。</p><p><b>安装：</b>点击顶部“安装 App”；iPhone 可用 Safari 的“添加到主屏幕”。</p><button onclick="hideHelp()">我知道了</button></div></div>
 </div>
 <script>
 const seed=[['serendipity','/ˌserənˈdɪpəti/','n. 意外发现美好事物的运气','Finding this café was pure serendipity.','我的生词本'],['resilient','/rɪˈzɪliənt/','adj. 有韧性的；能迅速恢复的','Children are often more resilient than we expect.','我的生词本'],['meticulous','/məˈtɪkjələs/','adj. 一丝不苟的；严谨的','She kept meticulous notes.','雅思核心词汇'],['eloquent','/ˈeləkwənt/','adj. 雄辩的；有说服力的','He gave an eloquent speech.','雅思核心词汇'],['ubiquitous','/juːˈbɪkwɪtəs/','adj. 无处不在的','Smartphones have become ubiquitous.','学术英语']].map(x=>({term:x[0],phonetic:x[1],meaning:x[2],example:x[3],book:x[4],mastered:false}));
@@ -54,7 +62,9 @@ function add(){if(words.some(x=>x.term===last.term))return toast('这个单词�
 function clearQuery(){$('#query').value='';$('#result').innerHTML='';$('#query').focus()}
 function removeWord(i){if(i<0||!words[i])return;if(confirm(`确定删除 ${words[i].term} 吗？`)){words.splice(i,1);save();toast('单词已删除')}}
 function virtualKey(id,key){let input=$('#'+id);if(key==='BACK')input.value=input.value.slice(0,-1);else if(key==='CLEAR')input.value='';else input.value+=key;input.dispatchEvent(new Event('input',{bubbles:true}))}
-function buildKeyboards(){let letters='qwertyuiopasdfghjklzxcvbnm'.split('');document.querySelectorAll('.vkeyboard').forEach(k=>{let id=k.dataset.target;k.innerHTML=letters.map(c=>`<button type="button" onclick="virtualKey('${id}','${c}')">${c.toUpperCase()}</button>`).join('')+`<button type="button" class="wide delete" onclick="virtualKey('${id}','BACK')">⌫ 退格</button><button type="button" class="wide" onclick="virtualKey('${id}','CLEAR')">清空</button>`});if(matchMedia('(max-width:800px)').matches){['query','answer'].forEach(id=>{$('#'+id).readOnly=true;$('#'+id).setAttribute('inputmode','none')})}}
+function buildKeyboards(){let rows=['qwertyuiop','asdfghjkl','zxcvbnm'];document.querySelectorAll('.vkeyboard').forEach(k=>{let id=k.dataset.target;k.innerHTML=rows.map((row,i)=>`<div class="keyrow ${i===1?'middle':i===2?'bottom':''}">${row.split('').map(c=>`<button type="button" onclick="virtualKey('${id}','${c}')">${c.toUpperCase()}</button>`).join('')}</div>`).join('')+`<div class="keyrow actions"><button type="button" class="delete" onclick="virtualKey('${id}','BACK')">⌫ 退格</button><button type="button" onclick="virtualKey('${id}','CLEAR')">清空</button></div>`});if(matchMedia('(max-width:800px)').matches){['query','answer'].forEach(id=>{$('#'+id).readOnly=true;$('#'+id).setAttribute('inputmode','none')})}}
+function showHelp(){$('#help').classList.remove('hide')}
+function hideHelp(){$('#help').classList.add('hide')}
 function speak(t){speechSynthesis.cancel();let u=new SpeechSynthesisUtterance(t);u.lang='en-US';u.rate=.82;speechSynthesis.speak(u)}function current(){return words[qi%words.length]}function renderQuiz(){$('#answer').value='';$('#feedback').innerHTML='';$('#qbar').style.width=((qi+1)/words.length*100)+'%'}function check(){let w=current(),ok=$('#answer').value.trim().toLowerCase()===w.term;if(ok){w.mastered=true;save();$('#feedback').innerHTML=`<div class="feedback ok">✓ 拼写正确！${w.term} · ${w.meaning}</div>`;setTimeout(()=>{qi=(qi+1)%words.length;renderQuiz();speak(current().term)},1100)}else $('#feedback').innerHTML=`<div class="feedback bad">再想一想 · 提示：${w.term[0]} _ _ _ · ${w.meaning}</div>`}
-$('#query').onkeydown=e=>e.key==='Enter'&&lookup();$('#answer').onkeydown=e=>e.key==='Enter'&&check();$('#file').onchange=async e=>{let f=e.target.files[0];if(!f)return;try{let wb=XLSX.read(await f.arrayBuffer()),rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1}),book=f.name.replace(/\.(xlsx?|csv)$/i,''),items=rows.slice(1).filter(r=>r[0]).map(r=>{let k=String(r[0]).trim().toLowerCase(),d=dict[k]||{};return{term:k,phonetic:String(r[1]||d.phonetic||'/ — /'),meaning:String(r[2]||d.meaning||'待补充释义'),example:String(r[3]||d.example||''),book}});words=[...items,...words];save();go('books');toast(`已识别 ${items.length} 个单词，创建词书「${book}」`)}catch(e){toast('文件解析失败，请检查格式')}e.target.value=''};let installPrompt;window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();installPrompt=e;$('#install').classList.remove('hide')});$('#install').onclick=async()=>{if(installPrompt){installPrompt.prompt();await installPrompt.userChoice;installPrompt=null;$('#install').classList.add('hide')}};if('serviceWorker'in navigator)navigator.serviceWorker.register('./sw.js?v=6',{updateViaCache:'none'}).then(r=>r.update());buildKeyboards();render();
+$('#query').onkeydown=e=>e.key==='Enter'&&lookup();$('#answer').onkeydown=e=>e.key==='Enter'&&check();$('#file').onchange=async e=>{let f=e.target.files[0];if(!f)return;try{let wb=XLSX.read(await f.arrayBuffer()),rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1}),book=f.name.replace(/\.(xlsx?|csv)$/i,''),items=rows.slice(1).filter(r=>r[0]).map(r=>{let k=String(r[0]).trim().toLowerCase(),d=dict[k]||{};return{term:k,phonetic:String(r[1]||d.phonetic||'/ — /'),meaning:String(r[2]||d.meaning||'待补充释义'),example:String(r[3]||d.example||''),book}});words=[...items,...words];save();go('books');toast(`已识别 ${items.length} 个单词，创建词书「${book}」`)}catch(e){toast('文件解析失败，请检查格式')}e.target.value=''};let installPrompt;window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();installPrompt=e;$('#install').classList.remove('hide')});$('#install').onclick=async()=>{if(installPrompt){installPrompt.prompt();await installPrompt.userChoice;installPrompt=null;$('#install').classList.add('hide')}};if('serviceWorker'in navigator)navigator.serviceWorker.register('./sw.js?v=7',{updateViaCache:'none'}).then(r=>r.update());buildKeyboards();render();
 </script></body></html>
